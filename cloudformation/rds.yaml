@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Template for RDS MariaDB database"
+
+Parameters: 
+  ApplicationName:
+    Type: String
+    Description: "Name of your application/repository."
+    Default: awesome-apps
+  DatabaseName:
+    Type: String
+    Description: "Name of the database"
+    Default: awesomeapps
+  DatabaseUsername:
+    Type: String
+    Description: "Name of the database user."
+    MinLength: 1
+    MaxLength: 16
+    Default: admin
+  DatabasePassword:
+    Type: String
+    Description: "Password for the database user"
+    NoEcho: true
+    MinLength: 8
+    MaxLength: 64
+  DatabasePort:
+    Type: String
+    Description: "Port used by the database host"
+    Default: 3306
+  SelectedEngine:
+    Type: String
+    Description: "Engine used by the database instance"
+    Default: mariadb
+    AllowedValues:
+      - mariadb
+      - mysql
+      - postgres
+      - sqlserver-ee
+      - sqlserver-se
+      - sqlserver-ex
+      - sqlserver-web
+  EngineVersion:
+    Type: String
+    Description: "Engine version used by the database instance"
+    Default: 10.3.34
+  AllocatedStorage:
+    Type: String
+    Description: "Storage allocated to the database instance (in GB)"
+    Default: 20
+  InstanceClass:
+    Type: String
+    Description: "Instance class used for the database"
+    Default: db.t3.micro
+    AllowedValues:
+      - db.t2.micro
+      - db.t3.micro
+
+Resources: 
+  rdsDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: !Sub ${AllocatedStorage}
+      DBInstanceIdentifier: !Sub "${ApplicationName}-instance"
+      DBInstanceClass: !Sub ${InstanceClass}
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      BackupRetentionPeriod: 0
+      DBName: !Sub ${DatabaseName}
+      Engine: !Sub ${SelectedEngine}
+      EngineVersion: !Sub ${EngineVersion}
+      KmsKeyId: !Ref rdsKey
+      MasterUsername: !Sub ${DatabaseUsername}
+      MasterUserPassword: !Sub ${DatabasePassword}
+      MaxAllocatedStorage: 21
+      MultiAZ: false
+      Port: !Sub ${DatabasePort}
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      StorageType: gp2
+      VPCSecurityGroups:
+        - sg-0f5e8d9ba72424dfe
+      Tags:
+        - Key: owner
+          Value: marijan
+        - Key: project
+          Value: aws-migration
+
+  rdsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: key-rds
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: 
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: 
+              - "*"
+          - Sid: Lightsail Permissions
+            Effect: Allow
+            Principal:
+              AWS: 
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: 
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${ApplicationName}-instance/"
+              - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${ApplicationName}-instance/*"
