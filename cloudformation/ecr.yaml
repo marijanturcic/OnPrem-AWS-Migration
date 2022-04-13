@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: ECR Template
+
+Parameters: 
+  ApplicationName:
+    Type: String
+    Description: "Name of your application/repository."
+    Default: awesome-apps
+
+Resources: 
+  ecrRepository:
+    Type: AWS::ECR::Repository
+    Properties: 
+      EncryptionConfiguration: 
+        EncryptionType: KMS
+        KmsKey: !Ref ecrKey
+      RepositoryName: !Sub "lightsail/${ApplicationName}"
+      Tags:
+        - Key: owner
+          Value: marijan
+        - Key: project
+          Value: aws-migration
+      RepositoryPolicyText: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: AllowPushPull
+            Effect: Allow
+            Principal: 
+              AWS: 
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: 
+              - "ecr:GetDownloadUrlForLayer"
+              - "ecr:BatchGetImage"
+              - "ecr:BatchCheckLayerAvailability"
+              - "ecr:PutImage"
+              - "ecr:InitiateLayerUpload"
+              - "ecr:UploadLayerPart"
+              - "ecr:CompleteLayerUpload"
+
+  ecrKey:
+    Type: AWS::KMS::Key
+    Properties:
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: key-rds
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: 
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: 
+              - "*"
+          - Sid: Lightsail Permissions
+            Effect: Allow
+            Principal:
+              AWS: 
+                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: 
+              - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:lightsail/${ApplicationName}/"
+              - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:lightsail/${ApplicationName}/*"
