@@ -14,7 +14,7 @@ Resources:
       EncryptionConfiguration: 
         EncryptionType: KMS
         KmsKey: !Ref ecrKey
-      RepositoryName: !Sub "lightsail/${ApplicationName}"
+      RepositoryName: !Sub "ecs/${ApplicationName}"
       Tags:
         - Key: owner
           Value: marijan
@@ -52,12 +52,17 @@ Resources:
             Action: "kms:*"
             Resource: 
               - "*"
-          - Sid: Lightsail Permissions
+          - Sid: ECS Permissions
             Effect: Allow
             Principal:
               AWS: 
-                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "kms:*"
+                - !ImportValue ec2ServerRoleArn            
+            Action:
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"            
             Resource: 
-              - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:lightsail/${ApplicationName}/"
-              - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:lightsail/${ApplicationName}/*"
+              - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:ecs/${ApplicationName}/"
+              - !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:ecs/${ApplicationName}/*"

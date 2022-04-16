@@ -55,7 +55,7 @@ Parameters:
       - db.t3.micro
 
 Resources: 
-  rdsDBInstance:
+  rdsDbInstance:
     Type: AWS::RDS::DBInstance
     Properties:
       AllocatedStorage: !Sub ${AllocatedStorage}
@@ -77,12 +77,26 @@ Resources:
       StorageEncrypted: true
       StorageType: gp2
       VPCSecurityGroups:
-        - sg-0f5e8d9ba72424dfe
+        - !GetAtt ec2ServerSG.GroupId
       Tags:
         - Key: owner
           Value: marijan
         - Key: project
           Value: aws-migration
+
+  ec2ServerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Enable SSH and HTTP"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
 
   rdsKey:
     Type: AWS::KMS::Key
@@ -91,7 +105,7 @@ Resources:
         Version: 2012-10-17
         Id: key-rds
         Statement:
-          - Sid: Enable IAM User Permissions
+          - Sid: "Enable IAM User Permissions"
             Effect: Allow
             Principal:
               AWS: 
@@ -99,12 +113,39 @@ Resources:
             Action: "kms:*"
             Resource: 
               - "*"
-          - Sid: Lightsail Permissions
+          - Sid: "EC2 Permissions"
             Effect: Allow
             Principal:
               AWS: 
-                - !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: "kms:*"
+                - !ImportValue ec2ServerRoleArn
+            Action:
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
             Resource: 
               - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${ApplicationName}-instance/"
               - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${ApplicationName}-instance/*"
+
+Outputs:
+  rdsDbEndpoint:
+    Value: !GetAtt rdsDbInstance.Endpoint.Address
+    Export:
+      Name: rdsDbEndpoint
+  rdsDbPort:
+    Value: !GetAtt rdsDbInstance.Endpoint.Port
+    Export:
+      Name: rdsDbPort
+  rdsKmsKeyId:
+    Value: !Ref rdsKey
+    Export:
+      Name: rdsKmsKeyId
+  rdsKmsKeyArn:
+    Value: !GetAtt rdsKey.Arn
+    Export:
+      Name: rdsKmsKeyArn
+  ec2SgId:
+    Value: !GetAtt ec2ServerSG.GroupId
+    Export:
+      Name: ec2SgId

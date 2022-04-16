@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "ec2 server stack"
+Parameters: 
+  ec2InstanceClass:
+    Type: String
+    Description: "Instance class used by EC2 instance"
+    Default: t2.micro
+  ec2AmiId:
+    Type: String
+    Description: "AMI ID used by EC2 instance"
+    Default: ami-01d9d7f15bbea00b7
+  ec2KeyName:
+    Type: String
+    Description: "SSH Key used by EC2 instance"
+    Default: marijan-key
+
+Resources: 
+  ec2ServerInstance:  
+    Type: AWS::EC2::Instance
+    Properties: 
+      IamInstanceProfile: !ImportValue ec2ServerInstanceProfileName
+      ImageId: !Sub ${ec2AmiId}
+      InstanceType: !Sub ${ec2InstanceClass}
+      KeyName: !Sub ${ec2KeyName}
+      SecurityGroupIds: 
+        - !ImportValue ec2SgId
+  
+  ec2InstanceProfilePolicies: 
+    Type: "AWS::IAM::Policy"
+    Properties: 
+      Roles: 
+        - !ImportValue ec2ServerRoleName
+      PolicyName: "ec2ServerAccessPolicy"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Action:
+              - "kms:Encrypt"
+              - "kms:Decrypt"
+              - "kms:ReEncrypt*"
+              - "kms:GenerateDataKey*"
+              - "kms:DescribeKey"
+            Resource: 
+              - !ImportValue rdsKmsKeyArn
+              - !Join
+                - ''
+                - - !ImportValue rdsKmsKeyArn
+                  - "/*"

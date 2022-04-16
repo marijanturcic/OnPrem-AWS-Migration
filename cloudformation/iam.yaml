@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Utility IAM template"
+Parameters:
+  ec2ServerRoleName:
+    Type: String
+    Description: "Name of the EC2 IAM role."
+    Default: ec2ServerIamRole
+  ec2InstanceProfileName:
+    Type: String
+    Description: "Name of your EC2 IAM instance profile."
+    Default: ec2ServerInstanceProfile
+
+Resources: 
+  ec2ServerRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub ${ec2ServerRoleName}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+  ec2ServerInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      InstanceProfileName: !Sub ${ec2InstanceProfileName}
+      Roles:
+        - !Ref ec2ServerRole
+
+Outputs:
+  ec2ServerRoleArn:
+    Value: !GetAtt ec2ServerRole.Arn
+    Export:
+      Name: ec2ServerRoleArn
+  ec2ServerInstanceProfileArn:
+    Value: !GetAtt ec2ServerInstanceProfile.Arn
+    Export:
+      Name: ec2ServerInstanceProfileArn
+  ec2ServerRoleName:
+    Value: !Ref ec2ServerRole
+    Export:
+      Name: ec2ServerRoleName
+  ec2ServerInstanceProfileName:
+    Value: !Ref ec2ServerInstanceProfile
+    Export:
+      Name: ec2ServerInstanceProfileName
